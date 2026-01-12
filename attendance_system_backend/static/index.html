@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Facial Recognition System</title>
+</head>
+<body>
+
+<h2>Facial Recognition System</h2>
+
+<video id="video" width="400" autoplay></video>
+<br><br>
+
+<button id="recognizeBtn">Recognize</button>
+<button id="enrollBtn">Enroll</button>
+
+<p id="result"></p>
+
+<script>
+const video = document.getElementById("video");
+const result = document.getElementById("result");
+
+navigator.mediaDevices.getUserMedia({ video: true })
+  .then(stream => video.srcObject = stream)
+  .catch(err => alert("Camera permission denied"));
+
+function captureImage() {
+  return new Promise(resolve => {
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d").drawImage(video, 0, 0);
+    canvas.toBlob(blob => resolve(blob), "image/jpeg");
+  });
+}
+
+// ------------------
+// RECOGNIZE
+// ------------------
+document.getElementById("recognizeBtn").onclick = async () => {
+  const blob = await captureImage();
+
+  const form = new FormData();
+  form.append("file", blob, "face.jpg");
+
+  const res = await fetch("/recognize", {
+    method: "POST",
+    body: form
+  });
+
+  const data = await res.json();
+  result.innerText = data.success
+    ? `Recognized: ${data.name}`
+    : data.message;
+};
+
+// ------------------
+// ENROLL
+// ------------------
+document.getElementById("enrollBtn").onclick = async () => {
+  const name = prompt("Enter name");
+  if (!name) return;
+
+  const blob = await captureImage();
+
+  const form = new FormData();
+  form.append("name", name);
+  form.append("file", blob, "face.jpg");
+
+  const res = await fetch("/enroll", {
+    method: "POST",
+    body: form
+  });
+
+  const data = await res.json();
+  result.innerText = data.message;
+};
+</script>
+
+</body>
+</html>
